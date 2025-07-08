@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="/layout :: head">
+  <meta charset="UTF-8">
+  <title>List Blog</title>
+</head>
+<body>
+<h3>Customers</h3>
+<p>
+  <a th:href="@{/blogs/create}">
+    Add new blogs
+  </a>
+</p>
+<p>
+  <a th:href="@{/Categories}">
+    Category
+  </a>
+</p>
+<table id="customers">
+  <thead>
+  <tr>
+    <th>STT</th>
+    <th>Tieu De</th>
+    <th>Content</th>
+    <th>CreateAt</th>
+    <th>UpdateAt</th>
+    <th>Update</th>
+    <th>Delete</th>
+    <th>View</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr th:each="row, rowState : ${blogs}">
+    <td th:text="${rowState.count}"></td>
+    <td th:text="${row.title}"></td>
+    <td th:text="${row.content}"></td>
+    <td th:text="${row.createdAt}"></td>
+    <td th:text="${row.updatedAt}"></td>
+    <td><a th:href="@{/blogs/edit/{id}(id=${row.getId()})}">edit</a></td>
+    <td><a th:href="@{/blogs/delete/{id}(id=${row.getId()})}">delete</a></td>
+    <td><a th:href="@{/blogs/view/{id}(id=${row.getId()})}">view</a></td>
+  </tr>
+  </tbody>
+</table>
+<footer th:replace="/layout :: footer"></footer>
+</body>
+</html>
