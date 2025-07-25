@@ -2,8 +2,8 @@ package com.example.springblogappss2.controller;
 
 import com.example.springblogappss2.model.Blog;
 import com.example.springblogappss2.model.Categories;
-import com.example.springblogappss2.service.impl.BlogService;
-import com.example.springblogappss2.service.impl.CategoriesService;
+import com.example.springblogappss2.service.IBlogService;
+import com.example.springblogappss2.service.ICategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,20 +16,21 @@ import java.util.Optional;
 @RequestMapping("/blogs")
 public class BlogController {
     @Autowired
-    private BlogService blogService;
+    private IBlogService blogService;
 
     @Autowired
-    private CategoriesService categoriesService;
+    private ICategoryService categoryService;
 
     @ModelAttribute("categories")
     public Iterable<Categories> listProvinces() {
-        return categoriesService.findAll();
+        return categoryService.findAll();
     }
 
+    // Trang chủ với AJAX
     @GetMapping("")
     public String home(Model model) {
-        Iterable<Blog> blogs = blogService.findAll();
-        model.addAttribute("blogs", blogs);
+        // Load categories để hiển thị trong dropdown
+        model.addAttribute("categories", categoryService.findAll());
         return "/blog/home";
     }
 

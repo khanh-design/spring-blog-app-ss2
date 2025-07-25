@@ -1,47 +1,374 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="en">
 <head th:replace="/layout :: head">
   <meta charset="UTF-8">
-  <title>List Blog</title>
+  <title>Blog List</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-<h3>Customers</h3>
+<h2>
+  Welcome !
+  <div sec:authorize="isAuthenticated()">
+    <span sec:authentication="principal.username"></span>
+  </div>
+</h2>
+<h3>Blogs</h3>
 <p>
   <a th:href="@{/blogs/create}">
     Add new blogs
   </a>
 </p>
 <p>
-  <a th:href="@{/Categories}">
+  <a th:href="@{/categories}">
     Category
   </a>
 </p>
-<table id="customers">
-  <thead>
-  <tr>
-    <th>STT</th>
-    <th>Tieu De</th>
-    <th>Content</th>
-    <th>CreateAt</th>
-    <th>UpdateAt</th>
-    <th>Update</th>
-    <th>Delete</th>
-    <th>View</th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr th:each="row, rowState : ${blogs}">
-    <td th:text="${rowState.count}"></td>
-    <td th:text="${row.title}"></td>
-    <td th:text="${row.content}"></td>
-    <td th:text="${row.createdAt}"></td>
-    <td th:text="${row.updatedAt}"></td>
-    <td><a th:href="@{/blogs/edit/{id}(id=${row.getId()})}">edit</a></td>
-    <td><a th:href="@{/blogs/delete/{id}(id=${row.getId()})}">delete</a></td>
-    <td><a th:href="@{/blogs/view/{id}(id=${row.getId()})}">view</a></td>
-  </tr>
-  </tbody>
-</table>
+
+<!-- Form tìm kiếm -->
+<div class="search-section">
+  <form id="searchForm" class="search-form">
+    <div>
+      <label for="keyword">Từ khóa:</label>
+      <input type="text" id="keyword" name="keyword" placeholder="Nhập từ khóa tìm kiếm...">
+    </div>
+    
+    <div>
+      <label for="categoryId">Danh mục:</label>
+      <select id="categoryId" name="categoryId">
+        <option value="">Tất cả danh mục</option>
+        <option th:each="category : ${categories}" 
+                th:value="${category.id}" 
+                th:text="${category.name}">
+        </option>
+      </select>
+    </div>
+    
+    <div>
+      <button type="submit">Tìm kiếm</button>
+      <a href="#" id="clearFilter" class="clear-filter">Xóa bộ lọc</a>
+    </div>
+  </form>
+  
+  <!-- Tùy chọn tìm kiếm -->
+  <div class="search-options">
+    <label>
+      <input type="checkbox" id="realTimeSearch" checked>
+      Tìm kiếm tự động (real-time)
+    </label>
+    <label>
+      <input type="checkbox" id="searchInTitle" checked>
+      Tìm trong tiêu đề
+    </label>
+    <label>
+      <input type="checkbox" id="searchInContent" checked>
+      Tìm trong nội dung
+    </label>
+  </div>
+</div>
+
+<!-- Hiển thị kết quả tìm kiếm -->
+<div id="searchResults" class="search-results" style="display: none;">
+  <strong>Kết quả tìm kiếm cho: </strong><span id="searchKeyword"></span>
+  <span id="searchCategory"></span>
+  <span id="searchCount"></span>
+</div>
+
+<!-- Loading indicator -->
+<div id="loading" class="loading" style="display: none;">
+  <p>Đang tải dữ liệu...</p>
+</div>
+
+<!-- Debug info -->
+<div id="debugInfo" style="background-color: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 3px; font-family: monospace; font-size: 12px;">
+  <strong>Debug Info:</strong>
+  <div id="debugContent">Chưa có thông tin...</div>
+</div>
+
+<!-- Bảng hiển thị blog -->
+<div id="blogContainer">
+  <table id="blogTable" class="blog-table" style="display: none;">
+    <thead>
+      <tr>
+        <th>STT</th>
+        <th>Tiêu đề</th>
+        <th>Nội dung</th>
+        <th>Danh mục</th>
+        <th>Ngày tạo</th>
+        <th>Ngày cập nhật</th>
+        <th>Thao tác</th>
+      </tr>
+    </thead>
+    <tbody id="blogTableBody">
+    </tbody>
+  </table>
+</div>
+
+<!-- Phân trang -->
+<div id="pagination" class="pagination" style="display: none;">
+</div>
+
+<!-- Thông tin trang -->
+<div id="pageInfo" class="page-info" style="display: none;">
+</div>
+
+<script>
+let currentPage = 0;
+let currentKeyword = '';
+let currentCategoryId = '';
+let searchTimeout;
+
+function updateDebugInfo(message) {
+    const now = new Date().toLocaleTimeString();
+    $('#debugContent').html(`[${now}] ${message}<br>` + $('#debugContent').html());
+}
+
+$(document).ready(function() {
+    updateDebugInfo('Document ready, loading blogs...');
+    // Load initial data
+    loadBlogs();
+    
+    // Handle search form submit
+    $('#searchForm').on('submit', function(e) {
+        e.preventDefault();
+        updateDebugInfo('Form submitted manually');
+        performSearch();
+    });
+    
+    // Handle clear filter
+    $('#clearFilter').on('click', function(e) {
+        e.preventDefault();
+        updateDebugInfo('Clear filter clicked');
+        clearFilters();
+    });
+    
+    // Real-time search
+    $('#keyword').on('input', function() {
+        if ($('#realTimeSearch').is(':checked')) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                updateDebugInfo('Real-time search triggered');
+                performSearch();
+            }, 500); // Debounce 500ms
+        }
+    });
+    
+    // Category change
+    $('#categoryId').on('change', function() {
+        if ($('#realTimeSearch').is(':checked')) {
+            updateDebugInfo('Category changed');
+            performSearch();
+        }
+    });
+    
+    // Search options change
+    $('#realTimeSearch, #searchInTitle, #searchInContent').on('change', function() {
+        if ($('#realTimeSearch').is(':checked')) {
+            updateDebugInfo('Search options changed');
+            performSearch();
+        }
+    });
+});
+
+function performSearch() {
+    currentPage = 0;
+    currentKeyword = $('#keyword').val();
+    currentCategoryId = $('#categoryId').val();
+    updateDebugInfo(`Performing search: keyword="${currentKeyword}", categoryId="${currentCategoryId}"`);
+    loadBlogs();
+}
+
+function clearFilters() {
+    $('#keyword').val('');
+    $('#categoryId').val('');
+    currentPage = 0;
+    currentKeyword = '';
+    currentCategoryId = '';
+    updateDebugInfo('Filters cleared');
+    loadBlogs();
+}
+
+function loadBlogs() {
+    showLoading();
+    
+    let params = {
+        page: currentPage,
+        size: 2
+    };
+    
+    if (currentKeyword) {
+        params.keyword = currentKeyword;
+    }
+    
+    if (currentCategoryId) {
+        params.categoryId = currentCategoryId;
+    }
+    
+    updateDebugInfo(`Loading blogs with params: ${JSON.stringify(params)}`);
+    
+    $.ajax({
+        url: '/api/blogs/search',
+        method: 'GET',
+        data: params,
+        success: function(response) {
+            updateDebugInfo(`Blogs loaded successfully: ${response.blogs.length} blogs, ${response.totalElements} total`);
+            hideLoading();
+            displayBlogs(response);
+            displayPagination(response);
+            displaySearchResults(response);
+        },
+        error: function(xhr, status, error) {
+            updateDebugInfo(`Error loading blogs: ${error} (${status})`);
+            console.error('Error loading blogs:', error);
+            console.error('Status:', status);
+            console.error('Response:', xhr.responseText);
+            hideLoading();
+            $('#blogContainer').html('<div class="no-results">Có lỗi xảy ra khi tải dữ liệu</div>');
+        }
+    });
+}
+
+function displayBlogs(response) {
+    const blogs = response.blogs;
+    const tableBody = $('#blogTableBody');
+    
+    updateDebugInfo(`Displaying ${blogs.length} blogs`);
+    
+    if (blogs.length === 0) {
+        $('#blogTable').hide();
+        $('#blogContainer').html('<div class="no-results">Không tìm thấy blog nào</div>');
+        updateDebugInfo('No blogs found, showing no results message');
+        return;
+    }
+    
+    $('#blogTable').show();
+    tableBody.empty();
+    
+    blogs.forEach(function(blog, index) {
+        const row = `
+            <tr>
+                <td>${(currentPage * 2) + index + 1}</td>
+                <td>${blog.title || 'N/A'}</td>
+                <td>${blog.content ? blog.content.substring(0, 50) + (blog.content.length > 50 ? '...' : '') : 'N/A'}</td>
+                <td>${blog.categories ? blog.categories.name : 'N/A'}</td>
+                <td>${formatDate(blog.createdAt)}</td>
+                <td>${formatDate(blog.updatedAt)}</td>
+                <td class="action-links">
+                    <a href="/blogs/edit/${blog.id}" class="edit-link">Sửa</a>
+                    <a href="/blogs/delete/${blog.id}" class="delete-link" onclick="return confirm('Bạn có chắc chắn muốn xóa?')">Xóa</a>
+                    <a href="/blogs/view/${blog.id}" class="view-link">Xem</a>
+                </td>
+            </tr>
+        `;
+        tableBody.append(row);
+    });
+    
+    updateDebugInfo(`Blog table updated with ${blogs.length} rows`);
+}
+
+function displayPagination(response) {
+    const pagination = $('#pagination');
+    const pageInfo = $('#pageInfo');
+    
+    if (response.totalPages <= 1) {
+        pagination.hide();
+        pageInfo.hide();
+        updateDebugInfo('No pagination needed (1 page or less)');
+        return;
+    }
+    
+    pagination.show();
+    pageInfo.show();
+    
+    let paginationHtml = '';
+    
+    // Previous button
+    if (response.hasPrevious) {
+        paginationHtml += `<a href="#" onclick="goToPage(${response.currentPage - 1})">Trước</a>`;
+    }
+    
+    // Page numbers
+    for (let i = 0; i < response.totalPages; i++) {
+        if (i === response.currentPage) {
+            paginationHtml += `<span class="current-page">${i + 1}</span>`;
+        } else {
+            paginationHtml += `<a href="#" class="page-link" onclick="goToPage(${i})">${i + 1}</a>`;
+        }
+    }
+    
+    // Next button
+    if (response.hasNext) {
+        paginationHtml += `<a href="#" onclick="goToPage(${response.currentPage + 1})">Sau</a>`;
+    }
+    
+    pagination.html(paginationHtml);
+    
+    // Page info
+    pageInfo.html(`Trang ${response.currentPage + 1} / ${response.totalPages} (${response.totalElements} blog)`);
+    
+    updateDebugInfo(`Pagination updated: page ${response.currentPage + 1}/${response.totalPages}`);
+}
+
+function displaySearchResults(response) {
+    const searchResults = $('#searchResults');
+    
+    if (!currentKeyword && !currentCategoryId) {
+        searchResults.hide();
+        updateDebugInfo('No search criteria, hiding search results');
+        return;
+    }
+    
+    searchResults.show();
+    
+    let keywordText = currentKeyword || '';
+    let categoryText = '';
+    let countText = '';
+    
+    if (currentCategoryId) {
+        const categoryName = $('#categoryId option:selected').text();
+        categoryText = ` trong danh mục: ${categoryName}`;
+    }
+    
+    if (response.totalElements > 0) {
+        countText = ` (${response.totalElements} kết quả)`;
+    } else {
+        countText = ' (Không tìm thấy kết quả nào)';
+    }
+    
+    $('#searchKeyword').text(keywordText);
+    $('#searchCategory').text(categoryText);
+    $('#searchCount').text(countText);
+    
+    updateDebugInfo(`Search results displayed: "${keywordText}"${categoryText}${countText}`);
+}
+
+function goToPage(page) {
+    currentPage = page;
+    updateDebugInfo(`Going to page ${page + 1}`);
+    loadBlogs();
+}
+
+function showLoading() {
+    $('#loading').show();
+    $('#blogTable').hide();
+    $('#pagination').hide();
+    $('#pageInfo').hide();
+    updateDebugInfo('Loading indicator shown');
+}
+
+function hideLoading() {
+    $('#loading').hide();
+    updateDebugInfo('Loading indicator hidden');
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN');
+}
+</script>
+
 <footer th:replace="/layout :: footer"></footer>
 </body>
-</html>
+</html> 

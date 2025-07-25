@@ -5,7 +5,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>Spring Customer</title>
+  <title>Spring Blog App</title>
 
   <style>
     h3{background-color: blue; color: white; padding: 10px 0 10px 20px;}
@@ -68,12 +68,142 @@
     }
 
     .notify span{font-size: 15px; color: blue;}
+
+    /* AJAX Blog Styles */
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    .search-section {
+      margin: 20px 0;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+    }
+    .search-form {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .search-form input, .search-form select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .search-form button {
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .search-form button:hover {
+      background-color: #0056b3;
+    }
+    .clear-filter {
+      padding: 8px 16px;
+      background-color: #6c757d;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-left: 5px;
+    }
+    .clear-filter:hover {
+      background-color: #545b62;
+      color: white;
+      text-decoration: none;
+    }
+    .search-results {
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #e7f3ff;
+      border-radius: 3px;
+    }
+    .blog-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    .blog-table th {
+      background-color: #f2f2f2;
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    .blog-table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+    }
+    .blog-table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .blog-table tr:hover {
+      background-color: #f5f5f5;
+    }
+    .action-links a {
+      margin: 0 5px;
+      text-decoration: none;
+    }
+    .edit-link { color: #007bff; }
+    .delete-link { color: #dc3545; }
+    .view-link { color: #28a745; }
+    .pagination {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .pagination a, .pagination span {
+      padding: 8px 12px;
+      margin: 0 2px;
+      text-decoration: none;
+      border-radius: 3px;
+    }
+    .pagination a {
+      background-color: #007bff;
+      color: white;
+    }
+    .pagination a:hover {
+      background-color: #0056b3;
+    }
+    .pagination .current-page {
+      background-color: #007bff;
+      color: white;
+    }
+    .pagination .page-link {
+      background-color: #f8f9fa;
+      color: #007bff;
+    }
+    .page-info {
+      margin-top: 10px;
+      color: #666;
+    }
+    .no-results {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-style: italic;
+    }
+    .search-options {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 3px;
+    }
+    .search-options label {
+      margin-right: 15px;
+      cursor: pointer;
+    }
+    .search-options input[type="checkbox"] {
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
 
 <footer th:fragment="footer">
-  &copy; 2021 CodeGym
+  &copy; 2024 Spring Blog App
 </footer>
 </body>
 </html>
