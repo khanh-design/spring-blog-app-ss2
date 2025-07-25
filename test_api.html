@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h2>Test Blog API</h2>
+    
+    <div>
+        <h3>Test Search API</h3>
+        <button onclick="testSearch()">Test Search</button>
+        <div id="searchResult"></div>
+    </div>
+    
+    <div>
+        <h3>Test Categories API</h3>
+        <button onclick="testCategories()">Test Categories</button>
+        <div id="categoriesResult"></div>
+    </div>
+    
+    <script>
+        function testSearch() {
+            $.ajax({
+                url: '/api/blogs/search',
+                method: 'GET',
+                data: { page: 0, size: 5 },
+                success: function(response) {
+                    $('#searchResult').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                },
+                error: function(xhr, status, error) {
+                    $('#searchResult').html('<p style="color: red;">Error: ' + error + '</p><pre>' + xhr.responseText + '</pre>');
+                }
+            });
+        }
+        
+        function testCategories() {
+            $.ajax({
+                url: '/api/blogs/categories',
+                method: 'GET',
+                success: function(response) {
+                    $('#categoriesResult').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                },
+                error: function(xhr, status, error) {
+                    $('#categoriesResult').html('<p style="color: red;">Error: ' + error + '</p><pre>' + xhr.responseText + '</pre>');
+                }
+            });
+        }
+    </script>
+</body>
+</html> 
